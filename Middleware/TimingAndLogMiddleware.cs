@@ -1,0 +1,36 @@
+﻿using Frameworks1.Services;
+using System.Diagnostics;
+
+namespace Frameworks1.Middleware
+{
+    public class TimingAndLogMiddleware
+    {
+        private readonly RequestDelegate _next;
+        private readonly ILogger<TimingAndLogMiddleware> _logger;
+
+        public TimingAndLogMiddleware(RequestDelegate next, ILogger<TimingAndLogMiddleware> logger)
+        {
+            _next = next;
+            _logger = logger;
+        }
+
+        public async Task Invoke(HttpContext context)
+        {
+            var requestId = RequestIdService.GetOrCreate(context);
+            var sw = Stopwatch.StartNew();
+
+            await _next(context);
+
+            sw.Stop();
+
+            _logger.LogInformation(
+                "Запрос обработан. requestId={RequestId} method={Method} path={Path} status={Status} timeMs={TimeMs}",
+                requestId,
+                context.Request.Method,
+                context.Request.Path.Value ?? string.Empty,
+                context.Response.StatusCode,
+                sw.ElapsedMilliseconds
+            );
+        }
+    }
+}
